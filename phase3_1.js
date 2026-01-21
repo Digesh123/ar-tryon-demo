@@ -22,7 +22,7 @@ const camera3D = new THREE.PerspectiveCamera(
 camera3D.position.z = 1;
 scene.add(camera3D);
 
-// light
+// lighting
 const light = new THREE.DirectionalLight(0xffffff, 2);
 light.position.set(0, 0, 2);
 scene.add(light);
@@ -33,11 +33,12 @@ let ring = null;
 new GLTFLoader().load("assets/ring.glb", gltf => {
   ring = gltf.scene;
   ring.scale.setScalar(0.03);
+  ring.visible = false;               // 👈 VERY IMPORTANT
   scene.add(ring);
   statusEl.textContent = "Ring loaded – show hand";
 });
 
-/* ---------- MediaPipe ---------- */
+/* ---------- MEDIAPIPE ---------- */
 const hands = new Hands({
   locateFile: f =>
     `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/${f}`
@@ -50,28 +51,49 @@ hands.setOptions({
   minTrackingConfidence: 0.8
 });
 
-/* ---------- Landmark Mapping ---------- */
+/* ---------- HAND → RING BINDING ---------- */
 hands.onResults(results => {
   renderer.render(scene, camera3D);
 
-  if (!results.multiHandLandmarks || !ring) return;
+  // ❌ No ring yet
+  if (!ring) return;
 
+  // ❌ No hand detected
+  if (
+    !results.multiHandLandmarks ||
+    results.multiHandLandmarks.length === 0
+  ) {
+    ring.visible = false;
+    statusEl.textContent = "No hand";
+    return;
+  }
+
+  const landmarks = results.multiHandLandmarks[0];
+
+  // ❌ Safety check (VERY IMPORTANT)
+  if (!landmarks || !landmarks[13]) {
+    ring.visible = false;
+    return;
+  }
+
+  ring.visible = true;
   statusEl.textContent = "Hand + Ring locked ✔";
 
   // Ring finger MCP
-  const p = results.multiHandLandmarks[0][13];
+  const p = landmarks[13];
 
   // Convert normalized → NDC
   const x = (p.x - 0.5) * 2;
   const y = -(p.y - 0.5) * 2;
 
-  const v = new THREE.Vector3(x, y, 0.5);
-  v.unproject(camera3D);
+  const target = new THREE.Vector3(x, y, 0.5);
+  target.unproject(camera3D);
 
-  ring.position.lerp(v, 0.6); // smoothing
+  // Smooth follow
+  ring.position.lerp(target, 0.6);
 });
 
-/* ---------- Camera ---------- */
+/* ---------- CAMERA ---------- */
 const camera = new Camera(video, {
   onFrame: async () => {
     await hands.send({ image: video });
