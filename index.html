@@ -9,8 +9,7 @@
     body { margin: 0; overflow: hidden; background: black; }
     video, canvas {
       position: absolute;
-      top: 0;
-      left: 0;
+      inset: 0;
       width: 100vw;
       height: 100vh;
       object-fit: cover;
@@ -26,7 +25,7 @@
     }
   </style>
 
-  <!-- ✅ IMPORT MAP (must come BEFORE module scripts) -->
+  <!-- ✅ IMPORT MAP -->
   <script type="importmap">
   {
     "imports": {
@@ -35,6 +34,10 @@
     }
   }
   </script>
+
+  <!-- ✅ MediaPipe MUST be loaded as global scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 </head>
 
 <body>
@@ -42,7 +45,7 @@
   <canvas id="overlay"></canvas>
   <button id="switchCam">Switch Camera</button>
 
-  <!-- ✅ MAIN MODULE -->
-  <script type="module" src="main.js"></script>
+  <!-- ✅ ES Module -->
+  <script type="module" src="app.js"></script>
 </body>
 </html>

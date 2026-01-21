@@ -1,11 +1,9 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
-import Hands from "https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js";
-import { Camera } from "https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js";
-
 console.log("THREE OK:", THREE.REVISION);
-console.log("GLTFLoader OK:", GLTFLoader);
+console.log("MediaPipe Camera:", window.Camera);
+console.log("MediaPipe Hands:", window.Hands);
 
 // DOM
 const video = document.getElementById("video");
@@ -37,9 +35,10 @@ new GLTFLoader().load("./assets/ring.glb", gltf => {
   console.log("Ring loaded");
 });
 
-// MediaPipe
-const hands = new Hands({
-  locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
+// MediaPipe Hands (GLOBAL)
+const hands = new window.Hands({
+  locateFile: file =>
+    `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
 });
 
 hands.setOptions({
@@ -48,11 +47,12 @@ hands.setOptions({
   minTrackingConfidence: 0.7
 });
 
-hands.onResults(res => {
+hands.onResults(results => {
   renderer.render(scene, camera3D);
-  if (!res.multiHandLandmarks || !ring) return;
 
-  const p = res.multiHandLandmarks[0][5]; // index MCP
+  if (!results.multiHandLandmarks || !ring) return;
+
+  const p = results.multiHandLandmarks[0][5]; // index MCP
 
   const x = (1 - p.x - 0.5) * 2;
   const y = -(p.y - 0.5) * 2;
@@ -74,11 +74,15 @@ async function startCamera() {
 
   video.srcObject = stream;
   await video.play();
-  mpCam.start();
+
+  mpCamera.start();
 }
 
-const mpCam = new Camera(video, {
-  onFrame: async () => hands.send({ image: video }),
+// MediaPipe Camera (GLOBAL)
+const mpCamera = new window.Camera(video, {
+  onFrame: async () => {
+    await hands.send({ image: video });
+  },
   width: 640,
   height: 480
 });
