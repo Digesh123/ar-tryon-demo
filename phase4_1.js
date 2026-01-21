@@ -25,7 +25,6 @@ const camera3D = new THREE.PerspectiveCamera(
   10
 );
 camera3D.position.z = 1.3;
-
 scene.add(camera3D);
 
 scene.add(new THREE.DirectionalLight(0xffffff, 2));
@@ -44,18 +43,6 @@ new GLTFLoader().load(
   }
 );
 
-/* ---------- DEBUG DOTS ---------- */
-const debugDots = [];
-const dotGeo = new THREE.SphereGeometry(0.005);
-const dotMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-
-for (let i = 0; i < 21; i++) {
-  const dot = new THREE.Mesh(dotGeo, dotMat);
-  dot.visible = false;
-  scene.add(dot);
-  debugDots.push(dot);
-}
-
 /* ---------- MEDIAPIPE HANDS ---------- */
 const hands = new window.Hands({
   locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
@@ -72,17 +59,12 @@ hands.onResults(onResults);
 
 /* ---------- CAMERA ---------- */
 let facingMode = "user";
-let stream;
-
-const mpCamera = new window.Camera(video, {
-  onFrame: async () => {
-    await hands.send({ image: video });
-  },
-  width: 640,
-  height: 480
-});
+let stream = null;
+let mpCamera = null;
 
 async function startCamera() {
+  // Stop old camera
+  if (mpCamera) mpCamera.stop();
   if (stream) stream.getTracks().forEach(t => t.stop());
 
   stream = await navigator.mediaDevices.getUserMedia({
@@ -91,12 +73,22 @@ async function startCamera() {
 
   video.srcObject = stream;
   await video.play();
+
+  mpCamera = new window.Camera(video, {
+    onFrame: async () => {
+      await hands.send({ image: video });
+    },
+    width: 640,
+    height: 480
+  });
+
   mpCamera.start();
 }
 
 switchBtn.onclick = async () => {
   facingMode = facingMode === "user" ? "environment" : "user";
-  startCamera();
+  statusEl.innerText = "Switching camera…";
+  await startCamera();
 };
 
 startCamera();
@@ -108,26 +100,28 @@ function toWorld(lm) {
   return new THREE.Vector3(x, y, 0.5).unproject(camera3D);
 }
 
-/* ---------- MAIN LOGIC (PHASE 4) ---------- */
+/* ---------- MAIN LOGIC ---------- */
 function onResults(results) {
   if (!ring) return;
 
-  if (!results.multiHandLandmarks) {
+  // HARD GUARD (fixes crash)
+  if (
+    !results ||
+    !results.multiHandLandmarks ||
+    results.multiHandLandmarks.length === 0
+  ) {
     ring.visible = false;
-    debugDots.forEach(d => d.visible = false);
     statusEl.innerText = "No hand";
+    renderer.render(scene, camera3D);
     return;
   }
 
   const lm = results.multiHandLandmarks[0];
 
-  statusEl.innerText = "Hand + Ring locked ✓";
+  // Safety: landmark length check
+  if (!lm || lm.length < 21) return;
 
-  // show debug dots
-  lm.forEach((p, i) => {
-    debugDots[i].position.copy(toWorld(p));
-    debugDots[i].visible = true;
-  });
+  statusEl.innerText = "Hand + Ring locked ✓";
 
   // Ring finger joints
   const mcp = toWorld(lm[13]);
@@ -135,7 +129,7 @@ function onResults(results) {
   const pinky = toWorld(lm[17]);
 
   // Position
-  ring.position.lerp(pip, 0.7);
+  ring.position.lerp(pip, 0.6);
 
   // Rotation
   const dir = new THREE.Vector3().subVectors(pip, mcp).normalize();
@@ -144,9 +138,9 @@ function onResults(results) {
     dir
   );
 
-  // Scale (finger width)
+  // Scale based on finger width
   const width = mcp.distanceTo(pinky);
-  const scale = THREE.MathUtils.clamp(width * 2.4, 0.015, 0.05);
+  const scale = THREE.MathUtils.clamp(width * 2.2, 0.015, 0.045);
   ring.scale.setScalar(scale);
 
   ring.visible = true;
@@ -154,7 +148,7 @@ function onResults(results) {
   renderer.render(scene, camera3D);
 }
 
-/* ---------- RENDER LOOP ---------- */
+/* ---------- LOOP ---------- */
 function animate() {
   requestAnimationFrame(animate);
   renderer.render(scene, camera3D);
