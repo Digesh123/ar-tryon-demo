@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>Ring Try-On</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <style>
     body { margin: 0; overflow: hidden; background: black; }
     video, canvas {
@@ -24,15 +25,24 @@
       font-size: 16px;
     }
   </style>
-</head>
-<body>
 
+  <!-- ✅ IMPORT MAP (must come BEFORE module scripts) -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.152.2/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.152.2/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+
+<body>
   <video id="video" autoplay playsinline muted></video>
   <canvas id="overlay"></canvas>
-
   <button id="switchCam">Switch Camera</button>
 
-  <!-- IMPORTANT -->
-  <script type="module" src="app.js"></script>
+  <!-- ✅ MAIN MODULE -->
+  <script type="module" src="main.js"></script>
 </body>
 </html>
