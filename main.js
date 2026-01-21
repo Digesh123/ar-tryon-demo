@@ -94,38 +94,45 @@
 
 // startCamera();
 
+/* =========================
+   PHASE 2 – HAND DEBUG
+   ========================= */
 
-import * as THREE from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+/* ---------- DOM ---------- */
 
-console.log("THREE version:", THREE.REVISION);
-
-/* ---------------- CAMERA (VIDEO ONLY) ---------------- */
-/* ---------------- DOM ---------------- */
 const video = document.getElementById("video");
 const canvas = document.getElementById("overlay");
 const ctx = canvas.getContext("2d");
+const debug = document.getElementById("debug");
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+/* ---------- CANVAS SIZE ---------- */
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener("resize", resize);
 
-/* ---------------- CAMERA ---------------- */
-
+/* ---------- CAMERA ---------- */
 async function startCamera() {
   const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: "user" }
+    video: {
+      facingMode: "user",
+      width: { ideal: 1280 },
+      height: { ideal: 720 }
+    }
   });
 
   video.srcObject = stream;
   await video.play();
 
+  debug.innerText = "Camera started";
   console.log("Camera started");
 }
 
 startCamera();
 
-/* ---------------- MEDIAPIPE HANDS ---------------- */
-
+/* ---------- MEDIAPIPE HANDS ---------- */
 const hands = new window.Hands({
   locateFile: file =>
     `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
@@ -140,28 +147,32 @@ hands.setOptions({
 
 hands.onResults(onResults);
 
-/* ---------------- MEDIAPIPE CAMERA ---------------- */
-
+/* ---------- MEDIAPIPE CAMERA ---------- */
 const mpCamera = new window.Camera(video, {
   onFrame: async () => {
     await hands.send({ image: video });
   },
-  width: 640,
-  height: 480
+  width: 1280,
+  height: 720
 });
 
 mpCamera.start();
 
-/* ---------------- DRAW DEBUG DOTS ---------------- */
-
+/* ---------- DRAW LANDMARKS ---------- */
 function onResults(results) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  if (!results.multiHandLandmarks) return;
+  if (!results.multiHandLandmarks) {
+    debug.innerText = "No hand detected";
+    return;
+  }
+
+  debug.innerText = "Hand detected ✔";
 
   const landmarks = results.multiHandLandmarks[0];
 
-  for (const p of landmarks) {
+  // Draw all 21 landmarks
+  landmarks.forEach((p, i) => {
     const x = p.x * canvas.width;
     const y = p.y * canvas.height;
 
@@ -169,19 +180,10 @@ function onResults(results) {
     ctx.arc(x, y, 6, 0, Math.PI * 2);
     ctx.fillStyle = "lime";
     ctx.fill();
-  }
+
+    // index number (for debugging)
+    ctx.fillStyle = "white";
+    ctx.font = "12px monospace";
+    ctx.fillText(i, x + 8, y + 4);
+  });
 }
-
-/* ---------------- RENDER LOOP ---------------- */
-
-function animate() {
-  requestAnimationFrame(animate);
-
-  if (ring) {
-    ring.rotation.y += 0.01; // prove it's alive
-  }
-
-  renderer.render(scene, camera3D);
-}
-
-animate();

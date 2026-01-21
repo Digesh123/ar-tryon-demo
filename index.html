@@ -2,50 +2,50 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Ring Try-On</title>
+  <title>AR Try-On – Phase 2 Debug</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
-    body { margin: 0; overflow: hidden; background: black; }
-    video, canvas {
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: black;
+    }
+
+    video,
+    canvas {
       position: absolute;
       inset: 0;
       width: 100vw;
       height: 100vh;
       object-fit: cover;
     }
-    button {
+
+    #debug {
       position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
+      top: 10px;
+      left: 10px;
       z-index: 10;
-      padding: 12px 18px;
-      font-size: 16px;
+      padding: 8px 12px;
+      background: rgba(0,0,0,0.6);
+      color: #0f0;
+      font-family: monospace;
+      font-size: 14px;
     }
   </style>
 
-  <!-- ✅ IMPORT MAP -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://unpkg.com/three@0.152.2/build/three.module.js",
-      "three/addons/": "https://unpkg.com/three@0.152.2/examples/jsm/"
-    }
-  }
-  </script>
-
-  <!-- ✅ MediaPipe MUST be loaded as global scripts -->
+  <!-- MediaPipe (GLOBAL – DO NOT IMPORT AS MODULE) -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 </head>
 
 <body>
+
+  <div id="debug">Starting…</div>
+
   <video id="video" autoplay playsinline muted></video>
   <canvas id="overlay"></canvas>
-  <button id="switchCam">Switch Camera</button>
 
-  <!-- ✅ ES Module -->
-  <script type="module" src="app.js"></script>
+  <script type="module" src="main.js"></script>
 </body>
 </html>
