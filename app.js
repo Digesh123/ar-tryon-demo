@@ -1,83 +1,18 @@
-/* ---------------- DOM ---------------- */
+/* ---------------- DEBUG ---------------- */
 console.log("THREE:", THREE);
 console.log("GLTFLoader:", THREE.GLTFLoader);
 
+/* ---------------- DOM ---------------- */
 const video = document.getElementById("video");
 const canvas = document.getElementById("overlay");
 const switchButton = document.getElementById("switchCam");
-
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
 
 /* ---------------- STATE ---------------- */
 let facingMode = "user";
 let stream = null;
 let mediapipeCamera = null;
 let ring = null;
-
-/* ---------------- CAMERA ---------------- */
-
-async function startCamera() {
-  // stop old stream
-  if (stream) {
-    stream.getTracks().forEach(t => t.stop());
-    stream = null;
-  }
-
-  // allow camera hardware reset
-  await new Promise(r => setTimeout(r, 300));
-
-  stream = await navigator.mediaDevices.getUserMedia({
-    video: {
-      facingMode,
-      width: { ideal: 1280 },
-      height: { ideal: 720 },
-    },
-  });
-
-  video.srcObject = stream;
-  await video.play();
-
-  // mirror front camera
-  video.style.transform =
-    facingMode === "user" ? "scaleX(-1)" : "scaleX(1)";
-
-  // restart mediapipe camera
-  if (mediapipeCamera) mediapipeCamera.stop();
-
-  mediapipeCamera = new Camera(video, {
-    onFrame: async () => {
-      await hands.send({ image: video });
-    },
-    width: 1280,
-    height: 720,
-  });
-
-  mediapipeCamera.start();
-}
-
-switchButton.onclick = async () => {
-  facingMode = facingMode === "user" ? "environment" : "user";
-  await startCamera();
-};
-
-startCamera();
-
-/* ---------------- MEDIAPIPE HANDS ---------------- */
-
-const hands = new Hands({
-  locateFile: file =>
-    `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
-});
-
-hands.setOptions({
-  maxNumHands: 1,
-  modelComplexity: 1,
-  minDetectionConfidence: 0.7,
-  minTrackingConfidence: 0.7,
-});
-
-hands.onResults(onResults);
+let lastLandmarks = null;
 
 /* ---------------- THREE.JS ---------------- */
 
@@ -103,36 +38,108 @@ const light = new THREE.DirectionalLight(0xffffff, 1);
 light.position.set(0, 0, 5);
 scene.add(light);
 
-// load ring
+/* ---------------- LOAD RING (SANITY FIRST) ---------------- */
+
 const loader = new THREE.GLTFLoader();
-loader.load("ring.glb", gltf => {
-  ring = gltf.scene;
-  ring.scale.set(0.005, 0.005, 0.005);
-  scene.add(ring);
+loader.load(
+  "ring.glb",
+  (gltf) => {
+    console.log("✅ Ring loaded");
+    ring = gltf.scene;
+
+    // FORCE VISIBILITY TEST
+    ring.scale.set(0.02, 0.02, 0.02);
+    ring.position.set(0, 0, -1);
+
+    scene.add(ring);
+  },
+  undefined,
+  (err) => console.error("❌ GLB load failed", err)
+);
+
+/* ---------------- MEDIAPIPE ---------------- */
+
+const hands = new Hands({
+  locateFile: (file) =>
+    `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
 });
 
-/* ---------------- TRACKING ---------------- */
+hands.setOptions({
+  maxNumHands: 1,
+  modelComplexity: 1,
+  minDetectionConfidence: 0.7,
+  minTrackingConfidence: 0.7,
+});
 
-function onResults(results) {
-  renderer.render(scene, camera3D);
+hands.onResults((results) => {
+  if (results.multiHandLandmarks?.length) {
+    lastLandmarks = results.multiHandLandmarks[0];
+  }
+});
 
-  if (!results.multiHandLandmarks || !ring) return;
+/* ---------------- CAMERA ---------------- */
 
-  const landmarks = results.multiHandLandmarks[0];
+async function startCamera() {
+  if (stream) {
+    stream.getTracks().forEach((t) => t.stop());
+  }
 
-  // index finger base joint (MCP)
-  const finger = landmarks[5];
+  await new Promise((r) => setTimeout(r, 300));
 
-  // handle mirroring
-  const fx =
-    facingMode === "user" ? 1 - finger.x : finger.x;
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: {
+      facingMode,
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+    },
+  });
 
-  // normalized device coords
-  const x = (fx - 0.5) * 2;
-  const y = -(finger.y - 0.5) * 2;
+  video.srcObject = stream;
+  await video.play();
 
-  const vector = new THREE.Vector3(x, y, 0.5);
-  vector.unproject(camera3D);
+  video.style.transform =
+    facingMode === "user" ? "scaleX(-1)" : "scaleX(1)";
 
-  ring.position.lerp(vector, 0.6);
+  if (mediapipeCamera) mediapipeCamera.stop();
+
+  mediapipeCamera = new Camera(video, {
+    onFrame: async () => {
+      await hands.send({ image: video });
+    },
+    width: 1280,
+    height: 720,
+  });
+
+  mediapipeCamera.start();
 }
+
+switchButton.onclick = async () => {
+  facingMode = facingMode === "user" ? "environment" : "user";
+  await startCamera();
+};
+
+startCamera();
+
+/* ---------------- RENDER LOOP (CRITICAL FIX) ---------------- */
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  if (ring && lastLandmarks) {
+    const finger = lastLandmarks[5];
+    const fx =
+      facingMode === "user" ? 1 - finger.x : finger.x;
+
+    const x = (fx - 0.5) * 2;
+    const y = -(finger.y - 0.5) * 2;
+
+    const v = new THREE.Vector3(x, y, 0.5);
+    v.unproject(camera3D);
+
+    ring.position.lerp(v, 0.3);
+  }
+
+  renderer.render(scene, camera3D);
+}
+
+animate();
