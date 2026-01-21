@@ -5,14 +5,13 @@
   <title>Ring Try-On</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Styles -->
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Three.js (ONE instance only) -->
-  <script src="https://unpkg.com/three@0.152.2/build/three.min.js"></script>
+  <!-- Three.js (ONLY ONE SOURCE) -->
+  <script src="https://unpkg.com/three@0.149.0/build/three.min.js"></script>
 
-  <!-- GLTFLoader (must match same Three.js version) -->
-  <script src="https://unpkg.com/three@0.152.2/examples/js/loaders/GLTFLoader.js"></script>
+  <!-- GLTFLoader that matches r149 -->
+  <script src="https://unpkg.com/three@0.149.0/examples/js/loaders/GLTFLoader.js"></script>
 
   <!-- MediaPipe -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
@@ -20,18 +19,13 @@
 </head>
 
 <body>
-  <!-- Camera feed -->
   <video id="video" autoplay playsinline muted></video>
-
-  <!-- Three.js overlay -->
   <canvas id="overlay"></canvas>
 
-  <!-- Controls -->
   <div class="ui">
     <button id="switchCam">Switch Camera</button>
   </div>
 
-  <!-- App logic (MUST be last) -->
-  <script src="app.js"></script>
+  <script src="main.js"></script>
 </body>
 </html>
