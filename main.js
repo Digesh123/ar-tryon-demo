@@ -1,5 +1,5 @@
-// import * as THREE from "three";
-// import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 // console.log("THREE OK:", THREE.REVISION);
 // console.log("MediaPipe Camera:", window.Camera);
