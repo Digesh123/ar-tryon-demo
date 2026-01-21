@@ -1,4 +1,7 @@
 /* ---------------- DOM ---------------- */
+console.log("THREE:", THREE);
+console.log("GLTFLoader:", THREE.GLTFLoader);
+
 const video = document.getElementById("video");
 const canvas = document.getElementById("overlay");
 const switchButton = document.getElementById("switchCam");
