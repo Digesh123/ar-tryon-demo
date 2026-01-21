@@ -31,8 +31,10 @@ canvas {
 
 button {
   background: gold;
+  color: black;
   border: none;
-  padding: 12px 20px;
+  padding: 12px 22px;
   font-size: 16px;
+  font-weight: 600;
   border-radius: 8px;
 }

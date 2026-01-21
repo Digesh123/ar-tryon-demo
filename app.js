@@ -1,31 +1,66 @@
+/* ---------------- DOM ---------------- */
 const video = document.getElementById("video");
 const canvas = document.getElementById("overlay");
-const ctx = canvas.getContext("2d");
+const switchButton = document.getElementById("switchCam");
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-let facingMode = "user"; // front camera
+/* ---------------- STATE ---------------- */
+let facingMode = "user";
+let stream = null;
+let mediapipeCamera = null;
+let ring = null;
 
 /* ---------------- CAMERA ---------------- */
 
 async function startCamera() {
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode },
-  });
-  video.srcObject = stream;
-}
-startCamera();
-
-document.getElementById("switchCam").onclick = async () => {
-  facingMode = facingMode === "user" ? "environment" : "user";
-  if (video.srcObject) {
-    video.srcObject.getTracks().forEach(t => t.stop());
+  // stop old stream
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
   }
+
+  // allow camera hardware reset
+  await new Promise(r => setTimeout(r, 300));
+
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: {
+      facingMode,
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+    },
+  });
+
+  video.srcObject = stream;
+  await video.play();
+
+  // mirror front camera
+  video.style.transform =
+    facingMode === "user" ? "scaleX(-1)" : "scaleX(1)";
+
+  // restart mediapipe camera
+  if (mediapipeCamera) mediapipeCamera.stop();
+
+  mediapipeCamera = new Camera(video, {
+    onFrame: async () => {
+      await hands.send({ image: video });
+    },
+    width: 1280,
+    height: 720,
+  });
+
+  mediapipeCamera.start();
+}
+
+switchButton.onclick = async () => {
+  facingMode = facingMode === "user" ? "environment" : "user";
   await startCamera();
 };
 
-/* ---------------- MEDIAPIPE ---------------- */
+startCamera();
+
+/* ---------------- MEDIAPIPE HANDS ---------------- */
 
 const hands = new Hands({
   locateFile: file =>
@@ -41,39 +76,35 @@ hands.setOptions({
 
 hands.onResults(onResults);
 
-const camera = new Camera(video, {
-  onFrame: async () => {
-    await hands.send({ image: video });
-  },
-  width: 1280,
-  height: 720,
-});
-camera.start();
-
 /* ---------------- THREE.JS ---------------- */
 
 const renderer = new THREE.WebGLRenderer({
   canvas,
   alpha: true,
+  antialias: true,
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
 
 const scene = new THREE.Scene();
-const camera3D = new THREE.OrthographicCamera(
-  -1, 1, 1, -1, 0.1, 10
+
+const camera3D = new THREE.PerspectiveCamera(
+  45,
+  window.innerWidth / window.innerHeight,
+  0.01,
+  100
 );
-camera3D.position.z = 5;
+camera3D.position.z = 2;
 
 const light = new THREE.DirectionalLight(0xffffff, 1);
 light.position.set(0, 0, 5);
 scene.add(light);
 
-let ring;
-
+// load ring
 const loader = new THREE.GLTFLoader();
 loader.load("ring.glb", gltf => {
   ring = gltf.scene;
-  ring.scale.set(0.02, 0.02, 0.02);
+  ring.scale.set(0.005, 0.005, 0.005);
   scene.add(ring);
 });
 
@@ -86,12 +117,19 @@ function onResults(results) {
 
   const landmarks = results.multiHandLandmarks[0];
 
-  // Index finger base (MCP joint)
+  // index finger base joint (MCP)
   const finger = landmarks[5];
 
-  // Convert normalized coords → screen coords
-  const x = (finger.x - 0.5) * 2;
+  // handle mirroring
+  const fx =
+    facingMode === "user" ? 1 - finger.x : finger.x;
+
+  // normalized device coords
+  const x = (fx - 0.5) * 2;
   const y = -(finger.y - 0.5) * 2;
 
-  ring.position.set(x, y, 0);
+  const vector = new THREE.Vector3(x, y, 0.5);
+  vector.unproject(camera3D);
+
+  ring.position.lerp(vector, 0.6);
 }

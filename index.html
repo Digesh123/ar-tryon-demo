@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Ring Try-On</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- MediaPipe -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
@@ -13,18 +13,17 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/loaders/GLTFLoader.js"></script>
 
-  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
+  <!-- Camera -->
+  <video id="video" autoplay playsinline muted></video>
 
-  <!-- Camera feed -->
-  <video id="video" autoplay playsinline></video>
-
-  <!-- WebGL overlay -->
+  <!-- Three.js overlay -->
   <canvas id="overlay"></canvas>
 
-  <!-- UI -->
+  <!-- Controls -->
   <div class="ui">
     <button id="switchCam">Switch Camera</button>
   </div>
