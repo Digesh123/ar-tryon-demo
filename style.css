@@ -1,41 +1,38 @@
-* {
-  box-sizing: border-box;
+html, body {
   margin: 0;
   padding: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow: hidden;
+  background: black;
 }
 
-body {
-  background: #000;
-  color: #fff;
+video {
+  position: absolute;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  z-index: 1;
 }
 
-.top-bar {
-  height: 60px;
-  background: #111;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+canvas {
+  position: absolute;
+  width: 100vw;
+  height: 100vh;
+  z-index: 2;
+  pointer-events: none;
 }
 
-.bottom-bar {
+.ui {
   position: fixed;
-  bottom: 0;
+  bottom: 20px;
   width: 100%;
-  background: #111;
-  padding: 12px;
   text-align: center;
+  z-index: 10;
 }
 
-.bottom-bar button {
-  background: #cfa64a; /* jewellery-like gold */
-  color: #000;
+button {
+  background: gold;
   border: none;
   padding: 12px 20px;
   font-size: 16px;
-  font-weight: 600;
   border-radius: 8px;
-  cursor: pointer;
 }

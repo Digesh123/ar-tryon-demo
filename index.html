@@ -2,45 +2,31 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Jewellery AR Try-On</title>
+  <title>Ring Try-On</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-  <!-- Required for mobile -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- MediaPipe -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
-  <!-- Google model-viewer (WebAR engine) -->
-  <script
-    type="module"
-    src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js">
-  </script>
+  <!-- Three.js -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/loaders/GLTFLoader.js"></script>
 
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css"/>
 </head>
 
 <body>
 
-  <!-- Header -->
-  <div class="top-bar">
-    <span>Try Jewellery in AR</span>
-  </div>
+  <!-- Camera feed -->
+  <video id="video" autoplay playsinline></video>
 
-  <!-- AR Viewer -->
-  <model-viewer
-    id="arViewer"
-    src="assets/ring.glb"
-    ar
-    ar-modes="scene-viewer webxr quick-look"
-    camera-controls
-    auto-rotate
-    exposure="1"
-    shadow-intensity="1"
-    environment-image="neutral"
-    style="width: 100%; height: calc(100vh - 60px);"
-  >
-  </model-viewer>
+  <!-- WebGL overlay -->
+  <canvas id="overlay"></canvas>
 
-  <!-- CTA -->
-  <div class="bottom-bar">
-    <button id="tryNowBtn">View in Your Space</button>
+  <!-- UI -->
+  <div class="ui">
+    <button id="switchCam">Switch Camera</button>
   </div>
 
   <script src="app.js"></script>
