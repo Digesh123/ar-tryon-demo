@@ -101,8 +101,15 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 console.log("THREE version:", THREE.REVISION);
 
 /* ---------------- CAMERA (VIDEO ONLY) ---------------- */
-
+/* ---------------- DOM ---------------- */
 const video = document.getElementById("video");
+const canvas = document.getElementById("overlay");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+/* ---------------- CAMERA ---------------- */
 
 async function startCamera() {
   const stream = await navigator.mediaDevices.getUserMedia({
@@ -117,64 +124,53 @@ async function startCamera() {
 
 startCamera();
 
-/* ---------------- THREE.JS SETUP ---------------- */
+/* ---------------- MEDIAPIPE HANDS ---------------- */
 
-const canvas = document.getElementById("overlay");
-
-const renderer = new THREE.WebGLRenderer({
-  canvas,
-  alpha: true,
-  antialias: true
+const hands = new window.Hands({
+  locateFile: file =>
+    `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
 });
 
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
+hands.setOptions({
+  maxNumHands: 1,
+  modelComplexity: 1,
+  minDetectionConfidence: 0.7,
+  minTrackingConfidence: 0.7
+});
 
-const scene = new THREE.Scene();
+hands.onResults(onResults);
 
-const camera3D = new THREE.PerspectiveCamera(
-  45,
-  window.innerWidth / window.innerHeight,
-  0.01,
-  10
-);
+/* ---------------- MEDIAPIPE CAMERA ---------------- */
 
-// CAMERA LOOKING FORWARD
-camera3D.position.z = 1;
-scene.add(camera3D);
-
-// LIGHTS (mandatory)
-const ambient = new THREE.AmbientLight(0xffffff, 1);
-scene.add(ambient);
-
-const directional = new THREE.DirectionalLight(0xffffff, 2);
-directional.position.set(0, 0, 2);
-scene.add(directional);
-
-/* ---------------- LOAD RING ---------------- */
-
-let ring = null;
-
-const loader = new GLTFLoader();
-
-loader.load(
-  "./assets/ring.glb",
-  gltf => {
-    ring = gltf.scene;
-
-    // FORCE VISIBILITY
-    ring.scale.setScalar(0.15);     // BIG
-    ring.position.set(0, 0, -1);    // IN FRONT OF CAMERA
-
-    scene.add(ring);
-
-    console.log("✅ Ring loaded and added to scene");
+const mpCamera = new window.Camera(video, {
+  onFrame: async () => {
+    await hands.send({ image: video });
   },
-  undefined,
-  err => {
-    console.error("❌ Failed to load GLB", err);
+  width: 640,
+  height: 480
+});
+
+mpCamera.start();
+
+/* ---------------- DRAW DEBUG DOTS ---------------- */
+
+function onResults(results) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (!results.multiHandLandmarks) return;
+
+  const landmarks = results.multiHandLandmarks[0];
+
+  for (const p of landmarks) {
+    const x = p.x * canvas.width;
+    const y = p.y * canvas.height;
+
+    ctx.beginPath();
+    ctx.arc(x, y, 6, 0, Math.PI * 2);
+    ctx.fillStyle = "lime";
+    ctx.fill();
   }
-);
+}
 
 /* ---------------- RENDER LOOP ---------------- */
 
