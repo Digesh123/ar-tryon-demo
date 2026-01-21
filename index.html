@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Phase 2 – Hand Landmark Debug</title>
+  <title>Phase 3 – Ring Anchoring</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
@@ -16,26 +16,36 @@
     }
     #status {
       position: absolute;
-      top: 12px;
-      left: 12px;
+      top: 10px;
+      left: 10px;
       background: rgba(0,0,0,0.7);
-      padding: 8px 12px;
+      color: lime;
+      padding: 6px 10px;
       font-family: monospace;
-      color: red;
       z-index: 10;
     }
   </style>
 
-  <!-- MediaPipe (OFFICIAL GLOBAL SCRIPTS – REQUIRED) -->
+  <!-- Import map -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.152.2/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.152.2/examples/jsm/"
+    }
+  }
+  </script>
+
+  <!-- MediaPipe -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js"></script>
 </head>
 
 <body>
-  <div id="status">Initializing…</div>
+  <div id="status">Waiting for hand…</div>
   <video id="video" autoplay playsinline muted></video>
-  <canvas id="canvas"></canvas>
+  <canvas id="overlay"></canvas>
 
-  <script src="phase2.js"></script>
+  <script type="module" src="phase3.js"></script>
 </body>
 </html>
