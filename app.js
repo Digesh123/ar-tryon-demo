@@ -1,6 +1,13 @@
+/* ---------------- IMPORTS (THIS FIXES EVERYTHING) ---------------- */
+import * as THREE from "https://unpkg.com/three@0.152.2/build/three.module.js";
+import { GLTFLoader } from "https://unpkg.com/three@0.152.2/examples/jsm/loaders/GLTFLoader.js";
+
+import { Hands } from "https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js";
+import { Camera } from "https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js";
+
 /* ---------------- DEBUG ---------------- */
-console.log("THREE:", THREE);
-console.log("GLTFLoader:", THREE.GLTFLoader);
+console.log("THREE version:", THREE.REVISION);
+console.log("GLTFLoader:", GLTFLoader);
 
 /* ---------------- DOM ---------------- */
 const video = document.getElementById("video");
@@ -15,7 +22,6 @@ let ring = null;
 let lastLandmarks = null;
 
 /* ---------------- THREE.JS ---------------- */
-
 const renderer = new THREE.WebGLRenderer({
   canvas,
   alpha: true,
@@ -38,18 +44,16 @@ const light = new THREE.DirectionalLight(0xffffff, 1);
 light.position.set(0, 0, 5);
 scene.add(light);
 
-/* ---------------- LOAD RING (SANITY FIRST) ---------------- */
-
-const loader = new THREE.GLTFLoader();
+/* ---------------- LOAD RING ---------------- */
+const loader = new GLTFLoader();
 loader.load(
-  "ring.glb",
+  "./ring.glb",
   (gltf) => {
     console.log("✅ Ring loaded");
     ring = gltf.scene;
 
-    // FORCE VISIBILITY TEST
     ring.scale.set(0.02, 0.02, 0.02);
-    ring.position.set(0, 0, -1);
+    ring.position.set(0, 0, -1); // force visible
 
     scene.add(ring);
   },
@@ -58,7 +62,6 @@ loader.load(
 );
 
 /* ---------------- MEDIAPIPE ---------------- */
-
 const hands = new Hands({
   locateFile: (file) =>
     `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
@@ -78,20 +81,11 @@ hands.onResults((results) => {
 });
 
 /* ---------------- CAMERA ---------------- */
-
 async function startCamera() {
-  if (stream) {
-    stream.getTracks().forEach((t) => t.stop());
-  }
-
-  await new Promise((r) => setTimeout(r, 300));
+  if (stream) stream.getTracks().forEach((t) => t.stop());
 
   stream = await navigator.mediaDevices.getUserMedia({
-    video: {
-      facingMode,
-      width: { ideal: 1280 },
-      height: { ideal: 720 },
-    },
+    video: { facingMode },
   });
 
   video.srcObject = stream;
@@ -106,8 +100,6 @@ async function startCamera() {
     onFrame: async () => {
       await hands.send({ image: video });
     },
-    width: 1280,
-    height: 720,
   });
 
   mediapipeCamera.start();
@@ -120,8 +112,7 @@ switchButton.onclick = async () => {
 
 startCamera();
 
-/* ---------------- RENDER LOOP (CRITICAL FIX) ---------------- */
-
+/* ---------------- RENDER LOOP ---------------- */
 function animate() {
   requestAnimationFrame(animate);
 
